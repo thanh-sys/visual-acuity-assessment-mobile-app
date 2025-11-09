@@ -62,7 +62,7 @@ class _SnellenChartWidgetState extends State<SnellenChartWidget> {
       widget.letterToDisplay,
       style: TextStyle(
         fontSize: _getFontSize(),
-        fontFamily: 'Courier_Prime',
+        fontFamily: 'Snellen',
       ),
     );
   }

@@ -43,6 +43,11 @@ dependencies:
   wakelock_plus: ^1.2.5
   shared_preferences: ^2.2.2
   speech_to_text: ^7.3.0
+  camera: ^0.10.5+9
+  tflite_flutter: ^0.12.1
+  image: ^4.1.3
+  path_provider: ^2.1.1
+  path: ^1.8.3
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -82,12 +87,10 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
+  fonts:
+  - family: Snellen
+    fonts:
+      - asset: assets/snellen_fonts/Snellen.ttf
   #   - family: Trajan Pro
   #     fonts:
   #       - asset: fonts/TrajanPro.ttf

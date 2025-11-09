@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+
 
 /// Calculates the required font size in logical pixels to match the standard Snellen chart.
 ///
@@ -43,11 +43,11 @@ double getCalibratedFontSize({
   print('4. Font Size cần dùng: $fontSizeLogicalPixels logical pixels (dp/pt)');
   print('-------------------------------------');
 
-  final double calibratedFontSize = fontSizeLogicalPixels * fontCorrectionFactor;
+  // final double calibratedFontSize = fontSizeLogicalPixels * fontCorrectionFactor;
 
   // Debug (Tùy chọn)
   print('Font Size gốc (chưa hiệu chỉnh): $fontSizeLogicalPixels dp');
-  print('Font Size cuối cùng (đã hiệu chỉnh): $calibratedFontSize dp');
+  // print('Font Size cuối cùng (đã hiệu chỉnh): $calibratedFontSize dp');
 
-  return calibratedFontSize;
+  return fontSizeLogicalPixels;
 }
