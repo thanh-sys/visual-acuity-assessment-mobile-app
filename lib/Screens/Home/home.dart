@@ -3,7 +3,7 @@ import 'package:flutter_application_1/Screens/Instructions/instructions.dart';
 import 'package:flutter_application_1/Screens/SimulateVision/simulate_vision.dart';
 import 'package:flutter_application_1/Screens/Settings/settings_screen.dart';
 import 'package:flutter_application_1/Screens/Calibration/calibration_screen.dart';
-import 'package:flutter_application_1/Screens/Test/speech_test_screen.dart';
+import 'package:flutter_application_1/Screens/Test/distance_check_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -284,7 +284,7 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Test Speech Recognition',
+                        'Check Distance',
                         style: TextStyle(
                           fontSize: 18,
                         ),
@@ -293,7 +293,7 @@ class _HomePageState extends State<HomePage> {
                         height: 10,
                       ),
                       Text(
-                        'Test voice input feature',
+                        'Verify 3-meter testing distance',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey,
@@ -307,7 +307,7 @@ class _HomePageState extends State<HomePage> {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) {
-                      return const SpeechTestScreen();
+                      return const DistanceCheckScreen();
                     },
                   ),
                 );

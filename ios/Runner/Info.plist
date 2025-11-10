@@ -18,6 +18,12 @@
 	<string>flutter_application_1</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to measure viewing distance using ARKit</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs location access for better distance measurement accuracy</string>
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
