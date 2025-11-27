@@ -176,6 +176,7 @@ class _SignInState extends State<SignIn> {
                               _email = value!;
                             },
                           ),
+                          SizedBox(height: 16),
                           TextFormField(
                             obscureText: true,
                             decoration: const InputDecoration(

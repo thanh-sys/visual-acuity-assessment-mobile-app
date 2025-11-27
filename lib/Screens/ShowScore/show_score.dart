@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/Screens/TestHistory/test_history.dart';
+import 'package:flutter_application_1/Screens/Home/home.dart';
 
 class ShowScore extends StatefulWidget {
   final int rightEyeScore;
@@ -15,6 +17,68 @@ class ShowScore extends StatefulWidget {
 
 class _ShowScoreState extends State<ShowScore> {
   var _isRightEye = true;
+  // Format display: 0 = Snellen (10/x), 1 = Decimal (VA), 2 = Meter (6/x), 3 = 20/20 format
+  int _formatDisplay = 0;
+
+  // Convert score to different formats
+  String getFormattedScore(int score) {
+    if (score == 0) return 'Unable to determine';
+    
+    switch (_formatDisplay) {
+      case 0: // Snellen 10/x format
+        return '10/$score';
+      case 1: // Decimal format
+        double decimalVA = 10.0 / score;
+        return decimalVA.toStringAsFixed(2);
+      case 2: // Meter format (6/x)
+        int meterScore = (score * 6 ~/ 10);
+        if (meterScore == 0) meterScore = 1;
+        return '6/$meterScore';
+      case 3: // 20/20 format equivalent
+        int twentyScore = (score * 20 ~/ 10);
+        if (twentyScore == 0) twentyScore = 1;
+        return '20/$twentyScore';
+      default:
+        return '10/$score';
+    }
+  }
+
+  String getExplanation(int score) {
+    if (score == 0) {
+      return 'You were not able to read the row of maximum size set for this chart. Your visual acuity score is beyond the scope of this test. Please visit an ophthalmologist for a check-up.';
+    }
+    
+    switch (_formatDisplay) {
+      case 0: // Snellen 10/x
+        return '''The "10/x" format means:
+• "10" = distance in feet where you can read the letters
+• "x" = distance from which a normal person can read the same letters
+
+For example, if your score is "10/20", you need to be 10 feet away to read letters that a normal person can read from 20 feet away.''';
+      case 1: // Decimal
+        double decimalVA = 10.0 / score;
+        return '''Decimal format represents visual acuity as a ratio:
+• 1.0 = Normal vision (20/20 equivalent)
+• > 1.0 = Better than normal vision
+• < 1.0 = Worse than normal vision
+
+Your decimal VA: ${decimalVA.toStringAsFixed(2)}''';
+      case 2: // Meter
+        return '''The "6/x" format is the metric equivalent of "10/x":
+• "6" = distance in meters where you can read the letters
+• "x" = distance from which a normal person can read the same letters
+
+This is commonly used in countries using the metric system.''';
+      case 3: // 20/20 format
+        return '''The "20/20" format is the most common visual acuity notation in the US:
+• "20" = distance in feet where you can read the letters
+• "20" (second) = distance from which a normal person can read the same letters
+
+For example, "20/30" means you need to be 20 feet away to read what a normal person can read from 30 feet away.''';
+      default:
+        return '';
+    }
+  }
 
   Widget _scoreWidget(int score) {
     return Column(
@@ -24,61 +88,185 @@ class _ShowScoreState extends State<ShowScore> {
           'Your Visual Acuity Score:',
           style: TextStyle(
             fontSize: 22,
+            fontWeight: FontWeight.bold,
           ),
         ),
         SizedBox(
-          height: MediaQuery.of(context).size.height * 0.07,
+          height: MediaQuery.of(context).size.height * 0.05,
         ),
+        // Score display
         CircleAvatar(
           radius: MediaQuery.of(context).size.width * 0.3,
-          child: score == 0
-              ? const Text(
-                  '10 / -',
-                  style: TextStyle(
-                    fontSize: 32,
-                  ),
-                )
-              : Text(
-                  '10 / ' + score.toString(),
-                  style: const TextStyle(
-                    fontSize: 32,
-                  ),
-                ),
+          backgroundColor: Theme.of(context).primaryColor,
+          child: Text(
+            score == 0 ? '10 / -' : getFormattedScore(score),
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
         ),
         SizedBox(
-          height: MediaQuery.of(context).size.height * 0.07,
+          height: MediaQuery.of(context).size.height * 0.04,
         ),
-        score == 0
-            ? const Text(
-                'You were not able to read the row of maximum size set for this chart. Your visual acuity score is beyond the scope of this test. Please visit an ophthalmologist for a check-up.',
-                textAlign: TextAlign.center,
+        // Format explanation
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(10),
+            color: Colors.grey.shade100,
+          ),
+          child: Text(
+            getExplanation(score),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.04,
+        ),
+        // Format toggle buttons
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _formatDisplay = 0;
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _formatDisplay == 0
+                    ? Theme.of(context).primaryColor
+                    : Colors.grey.shade300,
+              ),
+              child: Text(
+                '10/x',
                 style: TextStyle(
-                  fontSize: 22,
+                  color: _formatDisplay == 0 ? Colors.white : Colors.black,
+                  fontSize: 12,
                 ),
-              )
-            : score > 10
-                ? const Text(
-                    'Your vision is poorer than an average person.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 22,
-                    ),
-                  )
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _formatDisplay = 1;
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _formatDisplay == 1
+                    ? Theme.of(context).primaryColor
+                    : Colors.grey.shade300,
+              ),
+              child: Text(
+                'Decimal',
+                style: TextStyle(
+                  color: _formatDisplay == 1 ? Colors.white : Colors.black,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _formatDisplay = 2;
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _formatDisplay == 2
+                    ? Theme.of(context).primaryColor
+                    : Colors.grey.shade300,
+              ),
+              child: Text(
+                '6/x',
+                style: TextStyle(
+                  color: _formatDisplay == 2 ? Colors.white : Colors.black,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _formatDisplay = 3;
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _formatDisplay == 3
+                    ? Theme.of(context).primaryColor
+                    : Colors.grey.shade300,
+              ),
+              child: Text(
+                '20/20',
+                style: TextStyle(
+                  color: _formatDisplay == 3 ? Colors.white : Colors.black,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.04,
+        ),
+        // Interpretation
+        if (score != 0)
+          Text(
+            score > 10
+                ? 'Your vision is poorer than an average person.'
                 : score == 10
-                    ? const Text(
-                        'Your vision is normal as that of an average person.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 22,
-                        ),
-                      )
-                    : const Text(
-                        'Your vision is better than an average person.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 22,
-                        ),
-                      ),
+                    ? 'Your vision is normal as that of an average person.'
+                    : 'Your vision is better than an average person.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.05,
+        ),
+        // Action buttons
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => const HomePage(title: 'Home'),
+                  ),
+                  (route) => false,
+                );
+              },
+              icon: const Icon(Icons.home),
+              label: const Text('Home'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const TestHistory(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.history),
+              label: const Text('Test History'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -156,8 +344,12 @@ class _ShowScoreState extends State<ShowScore> {
               SizedBox(
                 height: MediaQuery.of(context).size.height * 0.05,
               ),
-              _scoreWidget(
-                _isRightEye ? widget.rightEyeScore : widget.leftEyeScore,
+              Expanded(
+                child: SingleChildScrollView(
+                  child: _scoreWidget(
+                    _isRightEye ? widget.rightEyeScore : widget.leftEyeScore,
+                  ),
+                ),
               ),
             ],
           ),

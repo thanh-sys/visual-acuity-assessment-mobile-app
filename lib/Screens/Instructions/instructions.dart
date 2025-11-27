@@ -1,6 +1,7 @@
 import 'package:bulleted_list/bulleted_list.dart';
-import 'package:flutter_application_1/Screens/Instructions/right_eye_instruction.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/Screens/Instructions/cover_eye_instruction.dart';
+import 'package:flutter_application_1/Screens/Measure/measure_acuity.dart';
 
 class Instructions extends StatefulWidget {
   const Instructions({
@@ -79,33 +80,90 @@ class _InstructionsState extends State<Instructions> {
                 ),
               ),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (context) {
-                      return const RightEyeInstruction();
-                    },
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    // Start with distance check - cover right eye first
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return CoverEyeInstruction(
+                            eyeToCover: 'right',
+                            // onCoverConfirmed: (eyeToTest) {
+                            //   // eyeToTest is 'left' (right eye is covered, so we test left eye)
+                            //   Navigator.of(context).pushReplacement(
+                            //     MaterialPageRoute(
+                            //       builder: (context) => MeasureAcuity(eyeToTest: eyeToTest),
+                            //     ),
+                            //   );
+                            // },
+                            leftEyeScore: 0,  // TRUYỀN QUA ĐÂY
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Start (with distance check)',
+                    style: TextStyle(
+                      fontSize: 16,
+                    ),
                   ),
-                );
-              },
-              child: const Text(
-                'Ok',
-                style: TextStyle(
-                  fontSize: 22,
-                ),
-              ),
-              style: ButtonStyle(
-                fixedSize: WidgetStateProperty.all(
-                  Size.fromWidth(MediaQuery.of(context).size.width * 0.9),
-                ),
-                elevation: WidgetStateProperty.all(5),
-                shape: WidgetStateProperty.all(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  style: ButtonStyle(
+                    fixedSize: WidgetStateProperty.all(
+                      Size.fromWidth(MediaQuery.of(context).size.width * 0.44),
+                    ),
+                    elevation: WidgetStateProperty.all(5),
+                    shape: WidgetStateProperty.all(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Start without distance check - cover right eye first
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return CoverEyeInstruction(
+                            eyeToCover: 'right',
+                            // onCoverConfirmed: (eyeToTest) {
+                            //   // eyeToTest is 'left' (right eye is covered, so we test left eye)
+                            //   Navigator.of(context).pushReplacement(
+                            //     MaterialPageRoute(
+                            //       builder: (context) => MeasureAcuity(eyeToTest: eyeToTest),
+                            //     ),
+                            //   );
+                            // },
+                            leftEyeScore: 0,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Start (skip distance check)',
+                    style: TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
+                  style: ButtonStyle(
+                    fixedSize: WidgetStateProperty.all(
+                      Size.fromWidth(MediaQuery.of(context).size.width * 0.44),
+                    ),
+                    elevation: WidgetStateProperty.all(5),
+                    shape: WidgetStateProperty.all(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

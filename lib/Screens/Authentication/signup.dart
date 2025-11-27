@@ -190,6 +190,7 @@ class _SignUpState extends State<SignUp> {
                               _name = value!;
                             },
                           ),
+                          SizedBox(height: 16),
                           TextFormField(
                             decoration: const InputDecoration(
                               filled: true,

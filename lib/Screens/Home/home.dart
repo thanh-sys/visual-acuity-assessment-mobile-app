@@ -3,7 +3,7 @@ import 'package:flutter_application_1/Screens/Instructions/instructions.dart';
 import 'package:flutter_application_1/Screens/SimulateVision/simulate_vision.dart';
 import 'package:flutter_application_1/Screens/Settings/settings_screen.dart';
 import 'package:flutter_application_1/Screens/Calibration/calibration_screen.dart';
-import 'package:flutter_application_1/Screens/Test/distance_check_screen.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -269,50 +269,44 @@ class _HomePageState extends State<HomePage> {
                 );
               },
             ),
-            InkWell(
-              child: Card(
-                elevation: 8,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(
-                    Radius.circular(12),
-                  ),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(12.0),
-                  width: MediaQuery.of(context).size.width,
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Check Distance',
-                        style: TextStyle(
-                          fontSize: 18,
-                        ),
-                      ),
-                      SizedBox(
-                        height: 10,
-                      ),
-                      Text(
-                        'Verify 3-meter testing distance',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) {
-                      return const DistanceCheckScreen();
-                    },
-                  ),
-                );
-              },
-            ),
+            // InkWell(
+            //   child: Card(
+            //     elevation: 8,
+            //     shape: const RoundedRectangleBorder(
+            //       borderRadius: BorderRadius.all(
+            //         Radius.circular(12),
+            //       ),
+            //     ),
+            //     child: Container(
+            //       padding: const EdgeInsets.all(12.0),
+            //       width: MediaQuery.of(context).size.width,
+            //       child: const Column(
+            //         crossAxisAlignment: CrossAxisAlignment.start,
+            //         children: [
+            //           Text(
+            //             'Check Distance',
+            //             style: TextStyle(
+            //               fontSize: 18,
+            //             ),
+            //           ),
+            //           SizedBox(
+            //             height: 10,
+            //           ),
+            //           Text(
+            //             'Verify 3-meter testing distance',
+            //             style: TextStyle(
+            //               fontSize: 14,
+            //               color: Colors.grey,
+            //             ),
+            //           ),
+            //         ],
+            //       ),
+            //     ),
+            //   ),
+            //   onTap: () {
+              
+            //   },
+            // ),
             InkWell(
               child: Card(
                 elevation: 8,
