@@ -61,6 +61,21 @@ class _TestHistoryState extends State<TestHistory> {
     return 'Unknown date';
   }
 
+  String _formatShortDate(dynamic timestamp) {
+    if (timestamp is Timestamp) {
+      final dateTime = timestamp.toDate();
+      return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}';
+    } else if (timestamp is String) {
+      try {
+        final dateTime = DateTime.parse(timestamp);
+        return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}';
+      } catch (e) {
+        return '';
+      }
+    }
+    return '';
+  }
+
   String _getFormattedScore(int score) {
     if (score == 0) return '10/-';
     return '10/$score';
@@ -78,23 +93,84 @@ class _TestHistoryState extends State<TestHistory> {
     }
   }
 
+  String _getTrendAnalysis(List<Map<String, dynamic>> tests) {
+    if (tests.length < 2) return '';
+    
+    final reversedTests = tests.reversed.toList();
+    
+    final firstLeftScore = reversedTests.first['leftEyeScore'] as int;
+    final lastLeftScore = reversedTests.last['leftEyeScore'] as int;
+    final firstRightScore = reversedTests.first['rightEyeScore'] as int;
+    final lastRightScore = reversedTests.last['rightEyeScore'] as int;
+    
+    final leftDiff = lastLeftScore - firstLeftScore;
+    final rightDiff = lastRightScore - firstRightScore;
+    
+    String leftTrend = '';
+    String rightTrend = '';
+    
+    if (leftDiff < 0) {
+      leftTrend = 'Left eye: Improved ↗ (${leftDiff.abs()} points better)';
+    } else if (leftDiff > 0) {
+      leftTrend = 'Left eye: Declined ↘ (${leftDiff} points worse)';
+    } else {
+      leftTrend = 'Left eye: Stable →';
+    }
+    
+    if (rightDiff < 0) {
+      rightTrend = 'Right eye: Improved ↗ (${rightDiff.abs()} points better)';
+    } else if (rightDiff > 0) {
+      rightTrend = 'Right eye: Declined ↘ (${rightDiff} points worse)';
+    } else {
+      rightTrend = 'Right eye: Stable →';
+    }
+    
+    return '$leftTrend\n$rightTrend';
+  }
+
   Widget _buildChart(List<Map<String, dynamic>> tests) {
     if (tests.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    // Tạo dữ liệu cho biểu đồ
+    final reversedTests = tests.reversed.toList();
+    
     final leftEyeSpots = <FlSpot>[];
     final rightEyeSpots = <FlSpot>[];
     
-    for (int i = 0; i < tests.length; i++) {
-      final test = tests[i];
+    for (int i = 0; i < reversedTests.length; i++) {
+      final test = reversedTests[i];
       final leftScore = (test['leftEyeScore'] as int).toDouble();
       final rightScore = (test['rightEyeScore'] as int).toDouble();
       
-      leftEyeSpots.add(FlSpot(i.toDouble(), leftScore));
-      rightEyeSpots.add(FlSpot(i.toDouble(), rightScore));
+      leftEyeSpots.add(FlSpot(i.toDouble(), -leftScore));
+      rightEyeSpots.add(FlSpot(i.toDouble(), -rightScore));
     }
+
+    final allScores = [
+      ...leftEyeSpots.map((s) => s.y),
+      ...rightEyeSpots.map((s) => s.y),
+    ];
+    
+    double minY = allScores.reduce((a, b) => a < b ? a : b);
+    double maxY = allScores.reduce((a, b) => a > b ? a : b);
+    
+    // Tăng padding để cột Y dài hơn (từ 0.2 lên 0.5)
+    final yPadding = (maxY - minY) * 0.5;
+    minY = minY - yPadding;
+    maxY = (maxY + yPadding).clamp(double.negativeInfinity, 0);
+    
+    minY = (minY / 2).floor() * 2.0;
+    maxY = (maxY / 2).ceil() * 2.0;
+    
+    // Tăng khoảng cách tối thiểu (từ 6 lên 10)
+    if (maxY - minY < 10) {
+      final center = (maxY + minY) / 2;
+      minY = center - 5;
+      maxY = (center + 5).clamp(double.negativeInfinity, 0);
+    }
+    
+    final yInterval = ((maxY - minY) / 5).ceilToDouble();
 
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -121,6 +197,15 @@ class _TestHistoryState extends State<TestHistory> {
               color: Colors.black87,
             ),
           ),
+          const SizedBox(height: 8),
+          Text(
+            _getTrendAnalysis(tests),
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[700],
+              height: 1.4,
+            ),
+          ),
           const SizedBox(height: 16),
           SizedBox(
             height: 300,
@@ -129,7 +214,7 @@ class _TestHistoryState extends State<TestHistory> {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: true,
-                  horizontalInterval: 2,
+                  horizontalInterval: yInterval,
                   verticalInterval: 1,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
@@ -146,32 +231,70 @@ class _TestHistoryState extends State<TestHistory> {
                 ),
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
+                    axisNameWidget: const Padding(
+                      padding: EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        'Test Date',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
                     sideTitles: SideTitles(
                       showTitles: true,
                       interval: 1,
                       getTitlesWidget: (value, meta) {
-                        return Text(
-                          '${value.toInt()}',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                          ),
-                        );
+                        final index = value.toInt();
+                        if (index >= 0 && index < reversedTests.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Transform.rotate(
+                              angle: -0.5,
+                              child: Text(
+                                _formatShortDate(reversedTests[index]['timestamp']),
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
                       },
+                      reservedSize: 40,
                     ),
                   ),
                   leftTitles: AxisTitles(
+                    axisNameWidget: const Padding(
+                      padding: EdgeInsets.only(right: 8.0),
+                      child: Text(
+                        'Vision Score\n(lower is better)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                     sideTitles: SideTitles(
                       showTitles: true,
-                      interval: 2,
+                      interval: yInterval,
+                      reservedSize: 45,
                       getTitlesWidget: (value, meta) {
-                        return Text(
-                          '10/${value.toInt()}',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 4.0),
+                          child: Text(
+                            '10/${(-value).toInt()}',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
                           ),
                         );
                       },
@@ -192,11 +315,10 @@ class _TestHistoryState extends State<TestHistory> {
                   ),
                 ),
                 minX: 0,
-                maxX: (tests.length - 1).toDouble(),
-                minY: 0,
-                maxY: 30,
+                maxX: (reversedTests.length - 1).toDouble(),
+                minY: minY,
+                maxY: maxY,
                 lineBarsData: [
-                  // Left Eye line
                   LineChartBarData(
                     spots: leftEyeSpots,
                     isCurved: true,
@@ -218,7 +340,6 @@ class _TestHistoryState extends State<TestHistory> {
                       color: Colors.blue.withOpacity(0.1),
                     ),
                   ),
-                  // Right Eye line
                   LineChartBarData(
                     spots: rightEyeSpots,
                     isCurved: true,
@@ -273,8 +394,10 @@ class _TestHistoryState extends State<TestHistory> {
                       return touchedBarSpots
                           .map((barSpot) {
                             final isLeftEye = barSpot.barIndex == 0;
+                            final index = barSpot.x.toInt();
+                            final dateStr = _formatShortDate(reversedTests[index]['timestamp']);
                             return LineTooltipItem(
-                              '${isLeftEye ? 'Left' : 'Right'} Eye\n10/${barSpot.y.toInt()}',
+                              '$dateStr\n${isLeftEye ? 'Left' : 'Right'} Eye\n10/${(-barSpot.y).toInt()}',
                               TextStyle(
                                 color: isLeftEye
                                     ? Colors.blue
@@ -291,7 +414,6 @@ class _TestHistoryState extends State<TestHistory> {
             ),
           ),
           const SizedBox(height: 16),
-          // Legend
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -385,7 +507,6 @@ class _TestHistoryState extends State<TestHistory> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Date header
                             Text(
                               _formatDate(timestamp),
                               style: const TextStyle(
@@ -395,11 +516,9 @@ class _TestHistoryState extends State<TestHistory> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            // Scores row
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                // Left Eye
                                 Expanded(
                                   child: Column(
                                     children: [
@@ -437,7 +556,6 @@ class _TestHistoryState extends State<TestHistory> {
                                   ),
                                 ),
                                 const SizedBox(width: 16),
-                                // Right Eye
                                 Expanded(
                                   child: Column(
                                     children: [

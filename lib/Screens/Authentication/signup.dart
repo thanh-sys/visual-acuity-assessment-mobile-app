@@ -64,7 +64,7 @@ class _SignUpState extends State<SignUp> {
             MaterialPageRoute(
               builder: (context) {
                 return const HomePage(
-                  title: 'EyeSuggest',
+                  title: 'YourEye',
                 );
               },
             ),
@@ -250,6 +250,7 @@ class _SignUpState extends State<SignUp> {
                               _email = value!;
                             },
                           ),
+                          SizedBox(height: 16),
                           TextFormField(
                             obscureText: true,
                             decoration: const InputDecoration(
@@ -310,6 +311,7 @@ class _SignUpState extends State<SignUp> {
                               _password = value!;
                             },
                           ),
+                          SizedBox(height: 16),
                           TextFormField(
                             obscureText: true,
                             decoration: const InputDecoration(
@@ -374,6 +376,7 @@ class _SignUpState extends State<SignUp> {
                       ),
                     ),
                   ),
+                  SizedBox(height: 16),
                   _isLoading
                       ? const CircularProgressIndicator()
                       : SizedBox(

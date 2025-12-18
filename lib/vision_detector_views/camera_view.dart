@@ -113,50 +113,56 @@ class _CameraViewState extends State<CameraView> {
     if (_cameras.isEmpty) return Container();
     if (_controller == null) return Container();
     if (_controller?.value.isInitialized == false) return Container();
-    return ColoredBox(
+    return Container(
       color: Colors.black,
-      child: Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          Center(
-            child: _changingCameraLens
-                ? Center(
-                    child: const Text('Changing camera lens'),
-                  )
-                : LayoutBuilder(builder: (context, constraints) {
-                    final w = constraints.maxWidth;
-                    final h = constraints.maxHeight;
-                    // Apply a transform to the CameraPreview to visually pan so the
-                    // detected face (normalized coordinates) appears centered.
-                    // We also clip the preview so it looks like a crop.
-                    final dx = (_visualCenter.dx - 0.5) * w * _visualZoom;
-                    final dy = (_visualCenter.dy - 0.5) * h * _visualZoom;
-                    return ClipRect(
-                      child: Transform.translate(
-                        offset: Offset(-dx, -dy),
-                        child: Transform.scale(
-                          scale: _visualZoom,
-                          alignment: Alignment.center,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              CameraPreview(_controller!),
-                              if (widget.customPaint != null) widget.customPaint!,
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-          ),
-          _backButton(),
-          _switchLiveCameraToggle(),
-          _detectionViewModeToggle(),
-          _zoomControl(),
-          _exposureControl(),
-        ],
+      child: Center(
+        child: CameraPreview(_controller!),
       ),
     );
+    // return ColoredBox(
+    //   color: Colors.black,
+    //   child: Stack(
+    //     fit: StackFit.expand,
+    //     children: <Widget>[
+    //       Center(
+    //         child: _changingCameraLens
+    //             ? Center(
+    //                 child: const Text('Changing camera lens'),
+    //               )
+    //             : LayoutBuilder(builder: (context, constraints) {
+    //                 final w = constraints.maxWidth;
+    //                 final h = constraints.maxHeight;
+    //                 // Apply a transform to the CameraPreview to visually pan so the
+    //                 // detected face (normalized coordinates) appears centered.
+    //                 // We also clip the preview so it looks like a crop.
+    //                 final dx = (_visualCenter.dx - 0.5) * w * _visualZoom;
+    //                 final dy = (_visualCenter.dy - 0.5) * h * _visualZoom;
+    //                 return ClipRect(
+    //                   child: Transform.translate(
+    //                     offset: Offset(-dx, -dy),
+    //                     child: Transform.scale(
+    //                       scale: _visualZoom,
+    //                       alignment: Alignment.center,
+    //                       child: Stack(
+    //                         fit: StackFit.expand,
+    //                         children: [
+    //                           CameraPreview(_controller!),
+    //                           if (widget.customPaint != null) widget.customPaint!,
+    //                         ],
+    //                       ),
+    //                     ),
+    //                   ),
+    //                 );
+    //               }),
+    //       ),
+    //       _backButton(),
+    //       _switchLiveCameraToggle(),
+    //       _detectionViewModeToggle(),
+    //       _zoomControl(),
+    //       _exposureControl(),
+    //     ],
+    //   ),
+    // );
   }
 
   Widget _backButton() => Positioned(
@@ -350,26 +356,26 @@ class _CameraViewState extends State<CameraView> {
           widget.onCameraLensDirectionChanged!(camera.lensDirection);
         }
       });
-      // Start a small timer that smooths visual zoom/center toward the target.
-      _followTimer ??= Timer.periodic(Duration(milliseconds: 50), (_) async {
-        // easing factor (how quickly visual state approaches the target)
-        const smoothing = 0.22;
-        // Smooth visual center
-        _visualCenter = Offset(
-          _visualCenter.dx + (_targetCenter.dx - _visualCenter.dx) * smoothing,
-          _visualCenter.dy + (_targetCenter.dy - _visualCenter.dy) * smoothing,
-        );
-        // Smooth zoom value
-        _visualZoom = _visualZoom + (_targetZoom - _visualZoom) * smoothing;
-        // Update actual camera zoom gradually as well (so hardware zoom keeps up)
-        if ((_visualZoom - _currentZoomLevel).abs() > 0.01) {
-          _currentZoomLevel = _visualZoom.clamp(_minAvailableZoom, _maxAvailableZoom);
-          // setZoomLevel returns a Future; don't await inside timer to avoid blocking
-          _controller?.setZoomLevel(_currentZoomLevel);
-        }
-        // Request rebuild to apply transform
-        if (mounted) setState(() {});
-      });
+      // // Start a small timer that smooths visual zoom/center toward the target.
+      // _followTimer ??= Timer.periodic(Duration(milliseconds: 50), (_) async {
+      //   // easing factor (how quickly visual state approaches the target)
+      //   const smoothing = 0.22;
+      //   // Smooth visual center
+      //   _visualCenter = Offset(
+      //     _visualCenter.dx + (_targetCenter.dx - _visualCenter.dx) * smoothing,
+      //     _visualCenter.dy + (_targetCenter.dy - _visualCenter.dy) * smoothing,
+      //   );
+      //   // Smooth zoom value
+      //   _visualZoom = _visualZoom + (_targetZoom - _visualZoom) * smoothing;
+      //   // Update actual camera zoom gradually as well (so hardware zoom keeps up)
+      //   if ((_visualZoom - _currentZoomLevel).abs() > 0.01) {
+      //     _currentZoomLevel = _visualZoom.clamp(_minAvailableZoom, _maxAvailableZoom);
+      //     // setZoomLevel returns a Future; don't await inside timer to avoid blocking
+      //     _controller?.setZoomLevel(_currentZoomLevel);
+      //   }
+      //   // Request rebuild to apply transform
+      //   if (mounted) setState(() {});
+      // });
       setState(() {});
     });
   }

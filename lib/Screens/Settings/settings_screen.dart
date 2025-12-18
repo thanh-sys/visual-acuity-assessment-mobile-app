@@ -43,7 +43,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.screen_rotation),
+            leading: const Icon(Icons.history),
             title: const Text('Test History'),
             subtitle: const Text('Test History'),
             onTap: () {

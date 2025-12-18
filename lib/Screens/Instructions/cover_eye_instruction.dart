@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/Screens/Measure/measure_acuity.dart';
-import 'package:flutter_application_1/Screens/Test/distance_check_screen.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:camera/camera.dart';
-import 'package:arkit_plugin/arkit_plugin.dart';
+
 import 'dart:math' as math;
 import 'dart:async';
 
@@ -27,10 +26,13 @@ class CoverEyeInstruction extends StatefulWidget {
 }
 
 class _CoverEyeInstructionState extends State<CoverEyeInstruction> {
-  ARKitController? _arkitController;
+
   final FlutterTts _tts = FlutterTts();
   // Pose detection members
-  final PoseDetector _poseDetector = PoseDetector(options: PoseDetectorOptions());
+  // final PoseDetector _poseDetector = PoseDetector(options: PoseDetectorOptions());
+  // Pose detection members - lazy initialized
+  late PoseDetector _poseDetector;
+  bool _poseDetectorInitialized = false;
   bool _canProcess = true;
   bool _isBusy = false;
   DateTime? _lastAnnounceAt;
@@ -40,16 +42,22 @@ class _CoverEyeInstructionState extends State<CoverEyeInstruction> {
   
   // Timer and state tracking
   Timer? _noDetectionTimer;
-  bool _hasShownInitialPrompt = false;
-  bool _hasShownWarning = false;
+  // bool _hasShownInitialPrompt = false;
+  // bool _hasShownWarning = false;
   bool _confirmingCover = false;
   int _consecutiveFramesDetected = 0;
+  int _consecutiveFramesDetectedWrongEye = 0;
   int _missedFrames = 0; // Đếm số frame bị mất liên tiếp
   static const int _maxMissedFramesAllowed = 30; // Cho phép mất tín hiệu 10 frame (khoảng 0.3s) mà không bị reset
-  // Constants
-  static const double _distanceThresholdRatio = 0.011;
-  static const int _noDetectionWaitSeconds = 10;
-  static const int _requiredConsecutiveFrames = 35;
+  // Constantsr
+  static const double _distanceThresholdRatio = 0.0113;//0.011
+  // static const int _noDetectionWaitSeconds = 10;
+  static const int _requiredConsecutiveFrames = 30;//35
+
+  // Hand guidance constants and tracking
+  static const int _guidanceCooldownMs = 1000; // 1 second cooldown between guidance messages
+  DateTime? _lastGuidanceAt;
+  String? _lastGuidanceMessage;
 
   // Determine which eye to cover and which to test
   late String _eyeToCover;
@@ -61,22 +69,33 @@ class _CoverEyeInstructionState extends State<CoverEyeInstruction> {
     _eyeToCover = widget.eyeToCover.toLowerCase();
     _eyeToTest = _eyeToCover == 'left' ? 'right' : 'left';
     
+    // Initialize PoseDetector lazily on first use
+    _initializePoseDetector();
+    
     _initTts().then((_) {
+      Future.delayed(const Duration(milliseconds: 1000));
       final coverMsg = _eyeToCover == 'left' 
         ? 'I will check that you have covered the left eye.'
         : 'I will check that you have covered the right eye.';
       _tts.speak(coverMsg);
     });
   }
+  
+  void _initializePoseDetector() {
+    if (!_poseDetectorInitialized) {
+      _poseDetector = PoseDetector(options: PoseDetectorOptions());
+      _poseDetectorInitialized = true;
+    }
+  }
 
   Future<void> _initTts() async {
     await _tts.setLanguage('en-US');
-    await _tts.setSpeechRate(0.45);
+    await _tts.setSpeechRate(0.52);
   }
 
   @override
   void dispose() {
-    _arkitController?.dispose();
+    
     _tts.stop();
     _canProcess = false;
     _noDetectionTimer?.cancel();
@@ -147,10 +166,16 @@ class _CoverEyeInstructionState extends State<CoverEyeInstruction> {
       final diag = math.sqrt(imageSize.width * imageSize.width + imageSize.height * imageSize.height);
       
 
-      final threshold = diag * 0.011; 
+      final threshold = diag * _distanceThresholdRatio; // Threshold để xác định che mắt
+      final guidanceZone = diag * 0.05; // Vùng rộng hơn để cung cấp guidance
 
       bool isCoveringAnyEye = false;
       String? coveredEyeSide; // 'LEFT' hoặc 'RIGHT'
+      
+      // Track if we should provide guidance and which wrist is near the target eye
+      bool shouldProvideGuidance = false;
+      PoseLandmark? guidanceWrist;
+      PoseLandmark? targetEyeForGuidance;
 
       // 1. Tìm xem có tay nào đang che mắt không
       for (final pose in poses) {
@@ -164,12 +189,24 @@ class _CoverEyeInstructionState extends State<CoverEyeInstruction> {
         double dist(PoseLandmark a, PoseLandmark b) => 
             math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
 
+        // Determine target eye based on eyeToCover setting
+        final targetEyeUpper = _eyeToCover.toUpperCase();
+        final targetEye = (targetEyeUpper == 'LEFT') ? rightEye : leftEye; // Reverse for camera view
+        
         // Kiểm tra cổ tay trái
         if (leftWrist != null) {
           double dL = dist(leftWrist, leftEye);
           double dR = dist(leftWrist, rightEye);
           if (dL < threshold) { isCoveringAnyEye = true; coveredEyeSide = 'LEFT'; }
           else if (dR < threshold) { isCoveringAnyEye = true; coveredEyeSide = 'RIGHT'; }
+          
+          // Check if in guidance zone for target eye
+          double distToTarget = dist(leftWrist, targetEye);
+          if ( distToTarget < guidanceZone && distToTarget >= threshold && !_detectedCorrectCover) {
+            shouldProvideGuidance = true;
+            guidanceWrist = leftWrist;
+            targetEyeForGuidance = targetEye;
+          }
         }
 
         // Kiểm tra cổ tay phải (nếu chưa tìm thấy ở tay trái)
@@ -178,7 +215,19 @@ class _CoverEyeInstructionState extends State<CoverEyeInstruction> {
           double dR = dist(rightWrist, rightEye);
           if (dL < threshold) { isCoveringAnyEye = true; coveredEyeSide = 'LEFT'; }
           else if (dR < threshold) { isCoveringAnyEye = true; coveredEyeSide = 'RIGHT'; }
+          
+          // Check if in guidance zone for target eye
+          double distToTarget = dist(rightWrist, targetEye);
+          if (distToTarget < guidanceZone && distToTarget >= threshold && !_detectedCorrectCover) {
+            shouldProvideGuidance = true;
+            guidanceWrist = rightWrist;
+            targetEyeForGuidance = targetEye;
+          }
         }
+
+        // print(shouldProvideGuidance
+        //     ? "Hand in guidance zone for ${_eyeToCover} eye."
+        //     : "No hand in guidance zone.");
       }
 
       // 2. Logic xử lý Đếm và Reset (Quan trọng)
@@ -186,7 +235,7 @@ class _CoverEyeInstructionState extends State<CoverEyeInstruction> {
         // --- TRƯỜNG HỢP PHÁT HIỆN TAY ---
         _missedFrames = 0; // Reset biến đếm lỗi vì đã thấy tay lại rồi
         _noDetectionTimer?.cancel();
-        _hasShownWarning = false;
+        // _hasShownWarning = false;
 
         final targetEyeUpper = _eyeToCover.toUpperCase();
         final expectedCameraEye = (targetEyeUpper == 'LEFT') ? 'RIGHT' : 'LEFT';
@@ -201,7 +250,8 @@ class _CoverEyeInstructionState extends State<CoverEyeInstruction> {
             final msg = _eyeToCover == 'left'
                 ? 'Please keep your left eye covered.'
                 : 'Please keep your right eye covered.';
-            await _tts.speak(msg);
+             _tts.speak(msg);
+            _lastGuidanceAt = null; // Reset guidance cooldown when confirmation starts
           }
 
           // Kiểm tra hoàn thành
@@ -212,12 +262,19 @@ class _CoverEyeInstructionState extends State<CoverEyeInstruction> {
           // B. CHE SAI MẮT
           // Nếu che sai mắt thì reset ngay lập tức, không khoan nhượng
           // _consecutiveFramesDetected = 0;
-          _confirmingCover = false;
           
-          final wrongEyeName = coveredEyeSide == 'LEFT' ? 'left' : 'right';
-          final correctEyeName = _eyeToCover;
-          final announcement = 'You are covering your $wrongEyeName eye. Please cover your $correctEyeName eye.';
-          _speakWarning(announcement);
+          _lastGuidanceAt = null; // Reset guidance cooldown
+          _consecutiveFramesDetectedWrongEye++;
+          if(_consecutiveFramesDetectedWrongEye >= 20) { // Nếu liên tiếp 15 frame che sai mắt
+          _confirmingCover = false;
+            _consecutiveFramesDetected = 0; // Reset đếm mắt đúng
+            _consecutiveFramesDetectedWrongEye = 0; // Reset đếm mắt sai
+            final wrongEyeName = coveredEyeSide == 'LEFT' ? 'right' : 'left';
+            final correctEyeName = _eyeToCover;
+        
+            final announcement = 'You are covering your $wrongEyeName eye. Please cover your $correctEyeName eye.';
+            _speakWarning(announcement);
+          }    
         }
       } else {
         // --- TRƯỜNG HỢP KHÔNG THẤY TAY (HOẶC BỊ NHIỄU 1-2 FRAME) ---
@@ -231,18 +288,25 @@ class _CoverEyeInstructionState extends State<CoverEyeInstruction> {
             }
             _consecutiveFramesDetected = 0;
             _confirmingCover = false;
+            _lastGuidanceAt = null; // Reset guidance cooldown
             
             // Logic nhắc nhở nếu chưa từng detect được gì
-            if (!_hasShownInitialPrompt) {
-              _hasShownInitialPrompt = true;
-              final msg = 'Please cover your $_eyeToCover eye.';
-              await _tts.speak(msg);
-              _startNoDetectionTimer();
-            }
+            // if (!_hasShownInitialPrompt) {
+            //   _hasShownInitialPrompt = true;
+            //   final msg = 'Please cover your $_eyeToCover eye.';
+            //   await _tts.speak(msg);
+            //   _startNoDetectionTimer();
+            // }
           } else {
             // Nếu mới mất tín hiệu vài frame thì KHÔNG LÀM GÌ CẢ (giữ nguyên _consecutiveFramesDetected)
             print("Frame skipped (Glitch protection): $_missedFrames");
           }
+        }
+        
+        // Provide guidance if hand is in guidance zone but not yet covering eye
+        // print('confirming _cover: $_confirmingCover');
+        if (shouldProvideGuidance && guidanceWrist != null && targetEyeForGuidance != null && !_confirmingCover) {
+          await _provideHandGuidance(guidanceWrist, targetEyeForGuidance);
         }
       }
     } catch (e) {
@@ -287,15 +351,90 @@ class _CoverEyeInstructionState extends State<CoverEyeInstruction> {
     }
   }
 
-  void _startNoDetectionTimer() {
-    _noDetectionTimer?.cancel();
-    _noDetectionTimer = Timer(const Duration(seconds: _noDetectionWaitSeconds), () {
-      if (!_hasShownWarning && !_detectedCorrectCover && mounted) {
-        _hasShownWarning = true;
-        _tts.speak(
-          'I haven\'t seen you covering your eye yet. Please try again by Remove your hand and bring it from below up to your eye.'
-        );
+  // void _startNoDetectionTimer() {
+  //   _noDetectionTimer?.cancel();
+  //   _noDetectionTimer = Timer(const Duration(seconds: _noDetectionWaitSeconds), () {
+  //     if (!_hasShownWarning && !_detectedCorrectCover && mounted) {
+  //       _hasShownWarning = true;
+  //       _tts.speak(
+  //         'I haven\'t seen you covering your eye yet. Please try again by Remove your hand and bring it from below up to your eye.'
+  //       );
+  //     }
+  //   });
+  // }
+
+  /// Provides directional guidance to move the user's hand to the correct eye position.
+  /// Analyzes the vector between wrist and target eye to determine guidance direction.
+  Future<void> _provideHandGuidance(PoseLandmark wrist, PoseLandmark targetEye) async {
+    final now = DateTime.now();
+    
+    // Check cooldown: only speak guidance every 1 second
+    if (_lastGuidanceAt != null && now.difference(_lastGuidanceAt!).inMilliseconds < _guidanceCooldownMs) {
+      print('Cooldown active, skipping guidance');
+      return;
+    }
+
+    // Calculate the vector from wrist to target eye
+    double deltaX = targetEye.x - wrist.x;
+    double deltaY = targetEye.y - wrist.y;
+    double distance = math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+    // print('Guidance: deltaX=$deltaX, deltaY=$deltaY, distance=$distance');
+
+    // Determine which guidance to provide
+    String? guidance;
+
+    // If hand is too far, prompt to move closer
+    if (distance > 100) {
+      guidance = 'Move your hand closer to your eye.';
+    } else {
+      // Normalize deltas relative to distance to determine dominant direction
+      double normalizedDeltaX = deltaX / distance;
+      double normalizedDeltaY = deltaY / distance;
+
+      // print('Normalized: deltaX=$normalizedDeltaX, deltaY=$normalizedDeltaY');
+
+      // Determine which axis has more significant deviation
+      double absDeltaX = normalizedDeltaX.abs();
+      double absDeltaY = normalizedDeltaY.abs();
+
+      // Direction threshold: if deviation is significant enough, provide directional guidance
+      const double directionThreshold = 0.1;
+
+      if (absDeltaY > absDeltaX) {
+        // Vertical adjustment is more significant
+        if (normalizedDeltaY > directionThreshold) {
+          guidance = 'Move your hand straight down slowly.';
+        } else if (normalizedDeltaY < -directionThreshold) {
+          guidance = 'Move your hand straight up slowly.';
+        } else {
+          guidance = 'Move your hand closer to your eye.';
+        }
+      } else if (absDeltaX > absDeltaY) {
+        // Horizontal adjustment is more significant
+        if (normalizedDeltaX > directionThreshold) {
+          guidance = 'Move your hand straight to the right slowly.';
+        } else if (normalizedDeltaX < -directionThreshold) {
+          guidance = 'Move your hand straight to the left slowly.';
+        } else {
+          guidance = 'Move your hand closer to your eye.';
+        }
+      } else {
+        // Both axes are roughly equal, just move closer
+        guidance = 'Move your hand closer to your eye.';
       }
-    });
+    }
+
+    // print('Guidance message: $guidance');
+
+    // Only speak if the guidance is different from the last message
+    if (guidance != _lastGuidanceMessage) {
+      _lastGuidanceMessage = guidance;
+      _lastGuidanceAt = now;
+      // print('Speaking guidance: $guidance');
+      await _tts.speak(guidance);
+    } else {
+      // print('Same guidance as last time, skipping');
+    }
   }
 }

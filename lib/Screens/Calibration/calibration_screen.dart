@@ -10,13 +10,13 @@ class CalibrationScreen extends StatefulWidget {
 
 class _CalibrationScreenState extends State<CalibrationScreen> {
 
-  // Kích thước chuẩn thẻ tín dụng/CCCD (inch)
-  static const double creditCardWidthInches = 3.37;  // Chiều dài hơn
-  static const double creditCardHeightInches = 2.125; // Chiều ngắn hơn
+  // Standard credit card/ID card size (inches)
+  static const double creditCardWidthInches = 3.37;   // Longer edge
+  static const double creditCardHeightInches = 2.125; // Shorter edge
 
-  // Slider để điều chỉnh chiều dài hiển thị (pixel)
+  // Slider to adjust displayed length (pixels)
   double _cardWidth = 200;
-  double? _savedPpi; // PPI đã lưu trước đó
+  double? _savedPpi; // Previously saved PPI
 
   @override
   void initState() {
@@ -42,14 +42,14 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     if (!mounted) return;
     final dpr = MediaQuery.of(context).devicePixelRatio;
 
-    // Tính PPI dựa trên chiều dài của thẻ
+    // Calculate PPI based on the card's long edge
     final screenPpi = (_cardWidth * dpr) / creditCardWidthInches;
 
     await prefs.setDouble('screen_ppi', screenPpi);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('PPI đã được lưu!')),
+      const SnackBar(content: Text('PPI has been saved!')),
     );
 
     Navigator.pop(context);
@@ -59,23 +59,23 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hiệu chỉnh màn hình'),
+        title: const Text('Screen Calibration'),
       ),
       body: Column(
         children: [
           Expanded(
             child: Center(
               child: Container(
-                width: _cardWidth * (creditCardHeightInches / creditCardWidthInches), // CHIỀU NGẮN
-                height: _cardWidth, // CHIỀU DÀI (ĐỨNG)
+                width: _cardWidth * (creditCardHeightInches / creditCardWidthInches), // SHORT EDGE
+                height: _cardWidth, // LONG EDGE (VERTICAL)
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.blue, width: 2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
                 child: const Text(
-                  'Đặt thẻ ngân hàng/CCCD lên màn hình.\n'
-                  'Kéo thanh trượt để chiều DÀI khung bên dưới trùng với chiều dài của thẻ thật.',
+                  'Place your credit/ID card on the screen.\n'
+                  'Adjust the slider until the LONG side of the frame matches the card’s real length.',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -91,7 +91,8 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                     IconButton(
                       onPressed: () {
                         setState(() {
-                          _cardWidth = (_cardWidth - 1).clamp(100, 500);
+                         _cardWidth = (_cardWidth - 1).clamp(50, 1200);
+
                         });
                       },
                       icon: const Icon(Icons.remove_circle_outline),
@@ -101,7 +102,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                       child: Slider(
                         value: _cardWidth,
                         min: 100,
-                        max: 500,
+                        max: 1200,
                         onChanged: (value) {
                           setState(() {
                             _cardWidth = value;
@@ -112,27 +113,27 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                     IconButton(
                       onPressed: () {
                         setState(() {
-                          _cardWidth = (_cardWidth + 1).clamp(100, 500);
+                          _cardWidth = (_cardWidth + 1).clamp(50, 1200);
                         });
                       },
                       icon: const Icon(Icons.add_circle_outline),
                     ),
                   ],
                 ),
-                // Hiển thị PPI hiện tại và đã lưu
+                // Show current & saved PPI
                 Text(
-                  'PPI hiện tại: ${_calculateCurrentPPI().toStringAsFixed(1)}',
+                  'Current PPI: ${_calculateCurrentPPI().toStringAsFixed(1)}',
                   style: const TextStyle(fontSize: 16),
                 ),
                 if (_savedPpi != null)
                   Text(
-                    'PPI đã lưu: ${_savedPpi!.toStringAsFixed(1)}',
+                    'Saved PPI: ${_savedPpi!.toStringAsFixed(1)}',
                     style: const TextStyle(fontSize: 16),
                   ),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _savePPI,
-                  child: const Text('Lưu hiệu chỉnh'),
+                  child: const Text('Save Calibration'),
                 ),
               ],
             ),

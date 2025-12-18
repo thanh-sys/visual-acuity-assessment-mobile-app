@@ -24,7 +24,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final Uri _url =
       Uri.parse('https://www.google.com/maps/search/ophthalmologist near me');
-
+  final uid = FirebaseAuth.instance.currentUser!.uid;
   @override
   void initState() {
     super.initState();

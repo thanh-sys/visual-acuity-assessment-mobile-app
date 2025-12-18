@@ -2,7 +2,7 @@ import 'package:bulleted_list/bulleted_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/Screens/Instructions/cover_eye_instruction.dart';
 import 'package:flutter_application_1/Screens/Measure/measure_acuity.dart';
-
+import 'package:flutter_application_1/Screens/Test/distance_check_screen.dart';
 class Instructions extends StatefulWidget {
   const Instructions({
     Key? key,
@@ -14,20 +14,19 @@ class Instructions extends StatefulWidget {
 
 class _InstructionsState extends State<Instructions> {
   final _listOfInstructions = [
-    "Setup: Choose a well-lit room, avoiding screen glare. Place your phone on a stable surface at eye level.",
-    "Audio: A quiet environment is best. You are recommended to wear Bluetooth headphones for ease of speech recognition.",
+    "Setup: Must Choose a well-lit room, avoiding screen glare. Place your phone on a stable surface at eye level and must have only 1 person in the frame.",
+    "Audio: A quiet environment is best. You must wear Bluetooth headphones for ease of speech recognition.",
     "Distance: An AI Nurse will guide you. Maintaining the 3-meter distance is crucial. The app will use the camera to help verify this.",
-    "Test Order: You must attempt the test twice. IMPORTANT: You must follow the order: RIGHT eye first, then LEFT eye second.",
-    "Eye Occlusion: When testing your left eye, cover your right eye with a plain occluder, card, or tissue. Do not press on your eye. The AI Nurse will verify this.",
+    "Test Order: You must attempt the test twice. IMPORTANT: You must follow the order: LEFT eye first, then RIGHT eye second.",
+    "Eye Occlusion: When testing your left eye, can only cover your right eye with your palm. Do not press on your eye. The AI Nurse will verify this.",
     "The Test: The Snellen's Chart (letters) will be displayed on the screen.",
-    "Voice Command: You MUST strictly say the phrase 'THE LETTER X', where X is the letter you see (e.g., 'THE LETTER E').",
-    "Speech Errors: If you fail to speak the complete phrase, or if there is a disturbance in recognition, you will be prompted to try again.",
-    "Test Flow: For every row in the Snellen's Chart, three letters will be displayed one-by-one. If you read correctly, the letters will get smaller (next row).",
-    "Stopping Rule: The test for one eye will end if you are unable to guess 2 out of 3 letters displayed in a row.",
-    "Guessing: If at any point you are unable to read the letter, guess and speak out any random letter, using the same 'THE LETTER X' format.",
-    "Results: Once the test has successfully completed, the score for the respective eye will be displayed.",
+    "Voice Command: You MUST strictly say the phrase include with 'THE LETTER X', where X is the letter you see (e.g., 'THE LETTER E').",
+    "Test Flow: For every row in the Snellen's Chart If you read correctly more than half of the letters, the letters will get smaller (next row).",
+    "Stopping Rule: The test for one eye will end if you are unable to guess equal or more than half letters displayed in a row.",
+    "Can not see: If at any point you are unable to read the letter, guess and speak out any random letter, using the same 'THE LETTER X' format or just say you cannot see.",
     "Next Eye: You will then repeat the entire process for your right eye (covering your left eye).",
-    "Starting: The test will start as soon as you press 'Ok'. Get in position before pressing the button.",
+    "Results: Once the test has successfully completed, the score for both eye will be displayed.",
+    "Starting: The test will start to verify 3 meters distance as soon as you press 'Start'. Get in position after pressing the button.",
   ];
 
   @override
@@ -85,28 +84,14 @@ class _InstructionsState extends State<Instructions> {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    // Start with distance check - cover right eye first
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
-                        builder: (context) {
-                          return CoverEyeInstruction(
-                            eyeToCover: 'right',
-                            // onCoverConfirmed: (eyeToTest) {
-                            //   // eyeToTest is 'left' (right eye is covered, so we test left eye)
-                            //   Navigator.of(context).pushReplacement(
-                            //     MaterialPageRoute(
-                            //       builder: (context) => MeasureAcuity(eyeToTest: eyeToTest),
-                            //     ),
-                            //   );
-                            // },
-                            leftEyeScore: 0,  // TRUYỀN QUA ĐÂY
-                          );
-                        },
+                        builder: (context) => const DistanceCheckScreen(),
                       ),
                     );
                   },
                   child: const Text(
-                    'Start (with distance check)',
+                    'Start ',
                     style: TextStyle(
                       fontSize: 16,
                     ),
@@ -123,46 +108,46 @@ class _InstructionsState extends State<Instructions> {
                     ),
                   ),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    // Start without distance check - cover right eye first
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) {
-                          return CoverEyeInstruction(
-                            eyeToCover: 'right',
-                            // onCoverConfirmed: (eyeToTest) {
-                            //   // eyeToTest is 'left' (right eye is covered, so we test left eye)
-                            //   Navigator.of(context).pushReplacement(
-                            //     MaterialPageRoute(
-                            //       builder: (context) => MeasureAcuity(eyeToTest: eyeToTest),
-                            //     ),
-                            //   );
-                            // },
-                            leftEyeScore: 0,
-                          );
-                        },
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    'Start (skip distance check)',
-                    style: TextStyle(
-                      fontSize: 16,
-                    ),
-                  ),
-                  style: ButtonStyle(
-                    fixedSize: WidgetStateProperty.all(
-                      Size.fromWidth(MediaQuery.of(context).size.width * 0.44),
-                    ),
-                    elevation: WidgetStateProperty.all(5),
-                    shape: WidgetStateProperty.all(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
+                // ElevatedButton(
+                //   onPressed: () {
+                //     // Start without distance check - cover right eye first
+                //     Navigator.of(context).pushReplacement(
+                //       MaterialPageRoute(
+                //         builder: (context) {
+                //           return CoverEyeInstruction(
+                //             eyeToCover: 'right',
+                //             // onCoverConfirmed: (eyeToTest) {
+                //             //   // eyeToTest is 'left' (right eye is covered, so we test left eye)
+                //             //   Navigator.of(context).pushReplacement(
+                //             //     MaterialPageRoute(
+                //             //       builder: (context) => MeasureAcuity(eyeToTest: eyeToTest),
+                //             //     ),
+                //             //   );
+                //             // },
+                //             leftEyeScore: 0,
+                //           );
+                //         },
+                //       ),
+                //     );
+                //   },
+                //   child: const Text(
+                //     'Start (skip distance check)',
+                //     style: TextStyle(
+                //       fontSize: 16,
+                //     ),
+                //   ),
+                //   style: ButtonStyle(
+                //     fixedSize: WidgetStateProperty.all(
+                //       Size.fromWidth(MediaQuery.of(context).size.width * 0.44),
+                //     ),
+                //     elevation: WidgetStateProperty.all(5),
+                //     shape: WidgetStateProperty.all(
+                //       RoundedRectangleBorder(
+                //         borderRadius: BorderRadius.circular(12),
+                //       ),
+                //     ),
+                //   ),
+                // ),
               ],
             ),
           ],

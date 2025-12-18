@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_application_1/Screens/Authentication/signup.dart';
 import 'package:flutter_application_1/Screens/Home/home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -49,7 +50,7 @@ class _SignInState extends State<SignIn> {
           MaterialPageRoute(
             builder: (context) {
               return const HomePage(
-                title: 'EyeSuggest',
+                title: 'YourEye',
               );
             },
           ),
@@ -63,6 +64,203 @@ class _SignInState extends State<SignIn> {
             msg: error.message,
           );
         },
+      );
+    }
+  }
+
+  void _showForgotPasswordDialog() {
+    final TextEditingController emailController = TextEditingController();
+    final GlobalKey<FormState> dialogFormKey = GlobalKey<FormState>();
+    bool isDialogLoading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.0),
+              ),
+              title: const Text(
+                'Forgot Password',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Form(
+                key: dialogFormKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Enter your email to receive a password reset link',
+                      style: TextStyle(fontSize: 15),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        hintText: 'Enter your email',
+                        hintStyle: TextStyle(fontSize: 15),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(20.0),
+                          ),
+                          borderSide: BorderSide(
+                            color: Colors.grey,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(20.0),
+                          ),
+                          borderSide: BorderSide(
+                            color: Color.fromRGBO(33, 111, 182, 1),
+                          ),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(20.0),
+                          ),
+                          borderSide: BorderSide(
+                            color: Colors.red,
+                          ),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(20.0),
+                          ),
+                          borderSide: BorderSide(
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your email';
+                        }
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(value)) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isDialogLoading
+                      ? null
+                      : () {
+                          Navigator.of(dialogContext).pop();
+                        },
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+                isDialogLoading
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : TextButton(
+                        onPressed: () {
+                          if (dialogFormKey.currentState!.validate()) {
+                            _resetPassword(
+                              emailController.text.trim(),
+                              dialogContext,
+                              setDialogState,
+                              (loading) {
+                                isDialogLoading = loading;
+                              },
+                            );
+                          }
+                        },
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all(
+                            Theme.of(context).primaryColor,
+                          ),
+                          foregroundColor: WidgetStateProperty.all(
+                            Colors.white,
+                          ),
+                        ),
+                        child: const Text(
+                          'Send',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _resetPassword(
+    String email,
+    BuildContext dialogContext,
+    StateSetter setDialogState,
+    Function(bool) setLoading,
+  ) async {
+    setDialogState(() {
+      setLoading(true);
+    });
+
+    try {
+      // Check if email exists in Firestore Users collection
+      final userDoc = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(email)
+          .get();
+
+      if (!userDoc.exists) {
+        setDialogState(() {
+          setLoading(false);
+        });
+        Fluttertoast.showToast(
+          msg: 'Email does not exist in the system',
+          toastLength: Toast.LENGTH_LONG,
+        );
+        return;
+      }
+
+      // Send password reset email
+      await _authentication.sendPasswordResetEmail(email: email);
+
+      setDialogState(() {
+        setLoading(false);
+      });
+
+      Navigator.of(dialogContext).pop();
+
+      Fluttertoast.showToast(
+        msg: 'Password reset email has been sent. Please check your email.',
+        toastLength: Toast.LENGTH_LONG,
+      );
+    } catch (error) {
+      setDialogState(() {
+        setLoading(false);
+      });
+      Fluttertoast.showToast(
+        msg: 'An error occurred. Please try again.',
+        toastLength: Toast.LENGTH_LONG,
       );
     }
   }
@@ -238,7 +436,7 @@ class _SignInState extends State<SignIn> {
                             },
                           ),
                           TextButton(
-                            onPressed: () {},
+                            onPressed: _showForgotPasswordDialog,
                             child: const Text(
                               'Forgot Password',
                               style: TextStyle(

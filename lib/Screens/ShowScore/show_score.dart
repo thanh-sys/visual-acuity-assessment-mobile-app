@@ -20,6 +20,70 @@ class _ShowScoreState extends State<ShowScore> {
   // Format display: 0 = Snellen (10/x), 1 = Decimal (VA), 2 = Meter (6/x), 3 = 20/20 format
   int _formatDisplay = 0;
 
+  // Get vision impairment category based on WHO standards
+  String getVisionCategory() {
+    // Use better eye score
+    int betterEyeScore = widget.rightEyeScore < widget.leftEyeScore 
+        ? widget.rightEyeScore 
+        : widget.leftEyeScore;
+    
+    if (betterEyeScore == 0) return 'Unable to determine';
+    
+    // Convert to 6/x format for comparison
+    int meterScore = (betterEyeScore * 6 ~/ 10);
+    if (meterScore == 0) meterScore = 1;
+    
+    // WHO Categories based on better eye
+    // Normal: 6/6 to 6/12
+    // Mild vision impairment: worse than 6/12, equal to or better than 6/18
+    // Moderate vision impairment: worse than 6/18, equal to or better than 6/60
+    // Severe vision impairment: worse than 6/60
+    
+    if (meterScore <= 12) {
+      return 'Normal vision';
+    } else if (meterScore <= 18) {
+      return 'Mild vision impairment';
+    } else if (meterScore <= 60) {
+      return 'Moderate vision impairment';
+    } else {
+      return 'Severe vision impairment';
+    }
+  }
+  
+  // Get category explanation
+  String getCategoryExplanation() {
+    String category = getVisionCategory();
+    switch (category) {
+      case 'Normal vision':
+        return 'Your vision in the better eye is within normal range (6/6 to 6/12).';
+      case 'Mild vision impairment':
+        return 'Visual acuity in your better eye is worse than 6/12 but equal to or better than 6/18. Consider consulting an eye specialist.';
+      case 'Moderate vision impairment':
+        return 'Visual acuity in your better eye is worse than 6/18 but equal to or better than 6/60. We recommend seeing an ophthalmologist soon.';
+      case 'Severe vision impairment':
+        return 'Visual acuity in your better eye is worse than 6/60. Please consult an ophthalmologist as soon as possible.';
+      default:
+        return '';
+    }
+  }
+  
+  // Get category color
+  Color getCategoryColor() {
+    String category = getVisionCategory();
+    switch (category) {
+      case 'Normal vision':
+        return Colors.green;
+      case 'Mild vision impairment':
+        return Colors.orange;
+      case 'Moderate vision impairment':
+        return Colors.deepOrange;
+      case 'Severe vision impairment':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
   // Convert score to different formats
   String getFormattedScore(int score) {
     if (score == 0) return 'Unable to determine';
@@ -96,7 +160,7 @@ For example, "20/30" means you need to be 20 feet away to read what a normal per
         ),
         // Score display
         CircleAvatar(
-          radius: MediaQuery.of(context).size.width * 0.3,
+          radius: MediaQuery.of(context).size.width * 0.2,
           backgroundColor: Theme.of(context).primaryColor,
           child: Text(
             score == 0 ? '10 / -' : getFormattedScore(score),
@@ -215,6 +279,71 @@ For example, "20/30" means you need to be 20 feet away to read what a normal per
         SizedBox(
           height: MediaQuery.of(context).size.height * 0.04,
         ),
+        // Vision Category based on WHO standards
+        if (score != 0)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: getCategoryColor().withOpacity(0.1),
+              border: Border.all(color: getCategoryColor(), width: 2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: getCategoryColor(),
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'WHO Classification',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: getCategoryColor(),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  getVisionCategory(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: getCategoryColor(),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  getCategoryExplanation(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Based on better eye: ${getFormattedScore(widget.rightEyeScore < widget.leftEyeScore ? widget.rightEyeScore : widget.leftEyeScore)}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.03,
+        ),
         // Interpretation
         if (score != 0)
           Text(
@@ -280,6 +409,7 @@ For example, "20/30" means you need to be 20 feet away to read what a normal per
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              SizedBox(height: 25),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -294,7 +424,9 @@ For example, "20/30" means you need to be 20 feet away to read what a normal per
                           ? Theme.of(context).primaryColor
                           : Colors.white,
                     ),
+                    
                     child: Center(
+                      
                       child: InkWell(
                         onTap: () {
                           setState(() {
@@ -304,7 +436,7 @@ For example, "20/30" means you need to be 20 feet away to read what a normal per
                         child: Text(
                           'Right Eye',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             color: _isRightEye ? Colors.white : Colors.black,
                           ),
                         ),

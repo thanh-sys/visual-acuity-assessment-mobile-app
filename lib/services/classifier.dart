@@ -19,8 +19,9 @@ class Classifier {
     'Irrelevant',      // 1
     'No',              // 2
     'RecognizeLetter', // 3
-    'Wait',            // 4
-    'Yes'              // 5
+    'Repeat',          // 4
+    'Wait',            // 5
+    'Yes'              // 6
   ];
 
   static const int _maxSeqLen = 32; // Phải khớp với MAX_SEQ_LEN bên Python
@@ -91,8 +92,8 @@ class Classifier {
     var inputs = [inputIds,segmentIds, inputMask];
 
     // --- BƯỚC 3: CHUẨN BỊ OUTPUT ---
-    // Output shape: [1, 6]
-    var outputBuffer = List.filled(1 * 6, 0.0).reshape([1, 6]);
+    // Output shape: [1, _labels.length]
+    var outputBuffer = List.filled(1 * _labels.length, 0.0).reshape([1, _labels.length]);
     
     // Map output index 0 vào buffer
     var outputs = {0: outputBuffer};
